@@ -1,3 +1,26 @@
+## 1.1.1
+
+### Added
+- Four more languages: Polski, Deutsch, Français, Tiếng Việt (12 languages in total).
+- Settings window widened to 700×596 so longer translations are not clipped; buttons moved
+  to two rows and no longer wrap.
+
+### Fixed
+- Translated labels overlapped their input fields; long strings shortened for German,
+  Russian, Polish, French, Turkish, Portuguese and Spanish.
+- The "Custom" entry of the canvas preset list is now localised.
+## 1.1.0
+
+### Added
+- Built-in UI language switcher (bottom-left of the settings window) with 8 languages:
+  Simplified Chinese, English, Russian, Portuguese (BR), Spanish, Japanese, Korean, Turkish.
+  The choice is stored as `Language=zh|en|ru|pt|es|ja|ko|tr` in `crosshair.ini`; on first run
+  the language is auto-detected from the system culture.
+- Settings and preset-library windows can now be minimised to the taskbar.
+- Two extra self-test assertions for the language tables (14 in total).
+
+### Changed
+- Tray menu is localised together with the windows.
 # Changelog
 
 ## 1.0.0 — first public release

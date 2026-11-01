@@ -20,6 +20,7 @@ namespace CrosshairOverlay
         public int ScreenIndex = 0;
         public bool PixelSnap = true;
         public int AlphaMode = 0;   // 0 = color key (most compatible), 1 = per-pixel alpha
+        public string Language = "";   // "", zh, en, ru, pt, es, ja, ko, tr
         public bool SyncArms = true; // keep horizontal/vertical length, thickness and gap identical
         public int OutlineMode = 1;
         public bool SoftEdge = false;
@@ -175,6 +176,7 @@ namespace CrosshairOverlay
                     case "alphamode": c.AlphaMode = (int)Num(v, 0); break;
                     case "syncarms": c.SyncArms = v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase); break;
                     case "outlinemode": c.OutlineMode = (int)Num(v, 1); break;
+                    case "language": c.Language = v; break;
                     case "softedge": c.SoftEdge = v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase); break;
                     case "upscale": c.Upscale = (int)Num(v, 0); break;
                     case "glow": c.Glow = (int)Math.Max(0, Math.Min(100, Num(v, 30))); break;
@@ -299,6 +301,7 @@ namespace CrosshairOverlay
             sb.AppendLine("Screen=" + ScreenIndex);
             sb.AppendLine("PixelSnap=" + (PixelSnap ? 1 : 0));
             sb.AppendLine("AlphaMode=" + AlphaMode);
+            sb.AppendLine("Language=" + Language);
             sb.AppendLine("SyncArms=" + (SyncArms ? 1 : 0));
             sb.AppendLine("OutlineMode=" + OutlineMode);
             sb.AppendLine("SoftEdge=" + (SoftEdge ? 1 : 0));
@@ -699,6 +702,7 @@ namespace CrosshairOverlay
         Timer topmostTimer;
         SettingsForm settings;
         PresetGalleryForm gallery;
+        ContextMenuStrip trayMenu;
         Config baseCfg;
         Dictionary<string, string> profiles = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         string activeProfile = "";
@@ -789,6 +793,24 @@ namespace CrosshairOverlay
             settings.WindowState = FormWindowState.Normal;
             settings.BringToFront();
             settings.Activate();
+        }
+
+        public void RestyleTray()
+        {
+            if (trayMenu == null || trayMenu.Items.Count < 8) return;
+            trayMenu.Items[0].Text = Loc.T("tray_settings") + " (" + cfg.KeySettings + ")";
+            trayMenu.Items[1].Text = Loc.T("tray_gallery");
+            trayMenu.Items[2].Text = Loc.T("tray_show") + " (" + cfg.KeyToggle + ")";
+            trayMenu.Items[3].Text = Loc.T("tray_color") + " (" + cfg.KeyColor + ")";
+            trayMenu.Items[4].Text = Loc.T("tray_canvas") + " (" + cfg.KeyCanvas + ")";
+            trayMenu.Items[5].Text = Loc.T("tray_reload") + " (" + cfg.KeyReload + ")";
+            trayMenu.Items[7].Text = Loc.T("tray_exit");
+        }
+
+        public void RestyleSettings()
+        {
+            if (settings != null && !settings.IsDisposed) settings.Relocalize();
+            if (gallery != null && !gallery.IsDisposed) { gallery.Dispose(); gallery = null; }
         }
 
         public void ShowGallery()
@@ -967,14 +989,15 @@ namespace CrosshairOverlay
             tray.Text = "Crosshair Overlay";
             tray.Visible = true;
             ContextMenuStrip menu = new ContextMenuStrip();
-            menu.Items.Add("设置 / Settings (" + cfg.KeySettings + ")", null, delegate { ShowSettings(); });
-            menu.Items.Add("准星存档库 / Presets", null, delegate { ShowGallery(); });
-            menu.Items.Add("显示/隐藏 (" + cfg.KeyToggle + ")", null, delegate { Toggle(); });
-            menu.Items.Add("换颜色 (" + cfg.KeyColor + ")", null, delegate { NextColor(); });
-            menu.Items.Add("换画布 (" + cfg.KeyCanvas + ")", null, delegate { NextCanvas(); });
-            menu.Items.Add("重载配置 (" + cfg.KeyReload + ")", null, delegate { Reload(); });
+            menu.Items.Add(Loc.T("tray_settings") + " (" + cfg.KeySettings + ")", null, delegate { ShowSettings(); });
+            menu.Items.Add(Loc.T("tray_gallery"), null, delegate { ShowGallery(); });
+            menu.Items.Add(Loc.T("tray_show") + " (" + cfg.KeyToggle + ")", null, delegate { Toggle(); });
+            menu.Items.Add(Loc.T("tray_color") + " (" + cfg.KeyColor + ")", null, delegate { NextColor(); });
+            menu.Items.Add(Loc.T("tray_canvas") + " (" + cfg.KeyCanvas + ")", null, delegate { NextCanvas(); });
+            menu.Items.Add(Loc.T("tray_reload") + " (" + cfg.KeyReload + ")", null, delegate { Reload(); });
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("退出程序", null, delegate { QuitApp(); });
+            menu.Items.Add(Loc.T("tray_exit"), null, delegate { QuitApp(); });
+            trayMenu = menu;
             tray.ContextMenuStrip = menu;
             tray.DoubleClick += delegate { ShowSettings(); };
         }
@@ -1378,13 +1401,253 @@ namespace CrosshairOverlay
 
     }
 
+    static class Loc
+    {
+        public static readonly string[] Keys =
+        {
+            "title", "canvas_grp", "preset", "w", "h", "mode", "snap", "upscale", "nearest", "bilinear",
+            "anchor", "alpha", "cross_grp", "shape", "color", "pick", "armx", "army", "gapx",
+            "thickx", "thicky", "gapy", "outline", "sides", "opacity", "sync", "softedge", "glow",
+            "presets_grp", "name", "save", "gallery", "saved", "load", "del",
+            "savecfg", "savegame", "close", "exit", "status", "language",
+            "tray_settings", "tray_gallery", "tray_show", "tray_color", "tray_canvas", "tray_reload", "tray_exit",
+            "gallery_title", "gallery_save", "gallery_close", "gallery_hint", "gallery_new"
+        };
+
+        public static readonly string[] Names =
+        {
+            "简体中文", "English", "Русский", "Português (BR)", "Español", "日本語", "한국어", "Türkçe",
+            "Polski", "Deutsch", "Français", "Tiếng Việt"
+        };
+
+        // order must match Names / Keys
+        static readonly string[][] Table =
+        {
+            // zh-CN
+            new string[]
+            {
+                "准星设置", "画布（准星的坐标系）", "预设", "宽", "高", "模式", "像素对齐", "放大", "最近邻", "双线性",
+                "锚点", "逐像素透明（重启生效；出现黑块就取消勾选）", "准星（单位：画布像素）", "形状", "颜色", "选择...",
+                "横臂", "竖臂", "间隙X", "线宽X", "线宽Y", "间隙Y", "描边", "只描两侧", "不透明度", "横竖等长",
+                "柔和边缘（抖动模拟半透明）", "光晕", "准星存档（自定义名字保存/载入）", "名称", "保存", "存档库...",
+                "已存", "载入", "删除", "保存配置 (Enter)", "存为当前游戏", "关闭 (Esc)", "退出程序",
+                "F6 打开本窗口 / F7 切画布 / F8 开关准星 / Ctrl+Alt+Q 退出", "语言",
+                "设置", "准星存档库", "显示/隐藏", "换颜色", "换画布", "重载配置", "退出程序",
+                "准星存档库", "保存当前准星为存档", "关闭", "点卡片载入 / 右键卡片删除", "新准星"
+            },
+            // English
+            new string[]
+            {
+                "Crosshair Settings", "Canvas (coordinate space)", "Preset", "W", "H", "Mode", "Pixel snap", "Upscale",
+                "Nearest", "Bilinear", "Anchor", "Per-pixel alpha (restart; uncheck on a black box)",
+                "Crosshair (canvas px)", "Shape", "Color", "Pick...", "Arm X", "Arm Y", "Gap X",
+                "Line X", "Line Y", "Gap Y", "Outline", "Sides only", "Opacity", "Sync arms",
+                "Soft edge (dither)", "Glow", "Crosshair presets (save / load by name)", "Name", "Save", "Library...",
+                "Saved", "Load", "Delete", "Save config (Enter)", "Save for this game", "Close (Esc)", "Quit",
+                "F6 settings / F7 canvas / F8 show-hide / Ctrl+Alt+Q quit", "Language",
+                "Settings", "Preset library", "Show / hide", "Next color", "Next canvas", "Reload config", "Quit",
+                "Crosshair presets", "Save current crosshair as preset", "Close", "Click a card to load / right-click to delete", "New crosshair"
+            },
+            // Русский
+            new string[]
+            {
+                "Настройки прицела", "Холст (координаты)", "Пресет", "Ш", "В", "Режим", "Пиксели", "Масш.",
+                "Соседние", "Билинейный", "Якорь", "Попиксельная прозрачность (перезапуск; снимите при чёрном квадрате)",
+                "Прицел (пикс. холста)", "Форма", "Цвет", "Выбрать...", "Плечо X", "Плечо Y", "Зазор X",
+                "Толщ. X", "Толщ. Y", "Зазор Y", "Обводка", "Бока", "Альфа", "Равные",
+                "Мягкий", "Свет", "Пресеты прицела (сохранить / загрузить)", "Имя", "Сохранить", "Библиотека...",
+                "Сохранено", "Загрузить", "Удалить", "Сохранить (Enter)", "Для игры", "Закрыть", "Выход",
+                "F6 настройки / F7 холст / F8 показать / Ctrl+Alt+Q выход", "Язык",
+                "Настройки", "Библиотека пресетов", "Показать / скрыть", "Следующий цвет", "Следующий холст", "Перечитать конфиг", "Выход",
+                "Пресеты прицела", "Сохранить текущий прицел", "Закрыть", "Клик — загрузить / правый клик — удалить", "Новый прицел"
+            },
+            // Português (BR)
+            new string[]
+            {
+                "Configurações da mira", "Tela (espaço de coordenadas)", "Predefinição", "L", "A", "Modo", "Alinhar pixels", "Ampliação",
+                "Vizinho", "Bilinear", "Âncora", "Alfa por pixel (reinicie; desmarque se ficar um quadrado preto)",
+                "Mira (px da tela)", "Forma", "Cor", "Escolher...", "Braço X", "Braço Y", "Vão X",
+                "Linha X", "Linha Y", "Vão Y", "Contorno", "Só as laterais", "Opacidade", "Braços iguais",
+                "Borda suave (dither)", "Brilho", "Predefinições de mira (salvar / carregar)", "Nome", "Salvar", "Biblioteca...",
+                "Salvo", "Carregar", "Excluir", "Salvar (Enter)", "Para este jogo", "Fechar (Esc)", "Sair",
+                "F6 config / F7 tela / F8 mostrar / Ctrl+Alt+Q sair", "Idioma",
+                "Configurações", "Biblioteca de predefinições", "Mostrar / ocultar", "Próxima cor", "Próxima tela", "Recarregar config", "Sair",
+                "Predefinições de mira", "Salvar mira atual como predefinição", "Fechar", "Clique para carregar / botão direito para excluir", "Nova mira"
+            },
+            // Español
+            new string[]
+            {
+                "Ajustes de mira", "Lienzo (espacio de coordenadas)", "Preajuste", "An", "Al", "Modo", "Alinear píxeles", "Escalado",
+                "Vecino", "Bilineal", "Ancla", "Alfa por píxel (reinicia; desmarca si sale un cuadro negro)",
+                "Mira (px del lienzo)", "Forma", "Color", "Elegir...", "Brazo X", "Brazo Y", "Hueco X",
+                "Grosor X", "Grosor Y", "Hueco Y", "Contorno", "Solo lados", "Opacidad", "Brazos iguales",
+                "Borde suave (dither)", "Resplandor", "Preajustes de mira (guardar / cargar)", "Nombre", "Guardar", "Biblioteca...",
+                "Guardado", "Cargar", "Borrar", "Guardar (Enter)", "Para este juego", "Cerrar (Esc)", "Salir",
+                "F6 ajustes / F7 lienzo / F8 mostrar / Ctrl+Alt+Q salir", "Idioma",
+                "Ajustes", "Biblioteca de preajustes", "Mostrar / ocultar", "Siguiente color", "Siguiente lienzo", "Recargar config", "Salir",
+                "Preajustes de mira", "Guardar mira actual", "Cerrar", "Clic para cargar / clic derecho para borrar", "Nueva mira"
+            },
+            // 日本語
+            new string[]
+            {
+                "クロスヘア設定", "キャンバス（座標系）", "プリセット", "幅", "高", "モード", "ピクセル整列", "拡大",
+                "最近傍", "バイリニア", "アンカー", "ピクセル透過（再起動が必要／黒い四角が出たら解除）",
+                "クロスヘア（キャンバス px）", "形状", "色", "選択...", "アーム X", "アーム Y", "隙間 X",
+                "線幅 X", "線幅 Y", "隙間 Y", "縁取り", "左右のみ", "不透明度", "縦横同じ",
+                "ソフトエッジ（ディザ）", "グロー", "クロスヘア保存（名前を付けて保存／読込）", "名前", "保存", "ライブラリ...",
+                "保存済み", "読込", "削除", "設定を保存 (Enter)", "このゲーム用に保存", "閉じる (Esc)", "終了",
+                "F6 設定 / F7 キャンバス / F8 表示切替 / Ctrl+Alt+Q 終了", "言語",
+                "設定", "プリセットライブラリ", "表示／非表示", "色を切替", "キャンバスを切替", "設定を再読込", "終了",
+                "クロスヘア プリセット", "現在のクロスヘアを保存", "閉じる", "クリックで読込／右クリックで削除", "新しいクロスヘア"
+            },
+            // 한국어
+            new string[]
+            {
+                "크로스헤어 설정", "캔버스 (좌표계)", "프리셋", "너비", "높이", "모드", "픽셀 정렬", "확대",
+                "최근접", "양선형", "앵커", "픽셀 투명(재시작 필요, 검은 사각형이 보이면 해제)",
+                "크로스헤어 (캔버스 px)", "모양", "색상", "선택...", "가로팔", "세로팔", "간격 X",
+                "선폭 X", "선폭 Y", "간격 Y", "테두리", "양옆만", "불투명도", "가로세로 동일",
+                "부드러운 가장자리(디더)", "글로우", "크로스헤어 저장 (이름으로 저장/불러오기)", "이름", "저장", "라이브러리...",
+                "저장됨", "불러오기", "삭제", "설정 저장 (Enter)", "이 게임용으로 저장", "닫기 (Esc)", "종료",
+                "F6 설정 / F7 캔버스 / F8 표시 전환 / Ctrl+Alt+Q 종료", "언어",
+                "설정", "프리셋 라이브러리", "표시/숨기기", "색상 변경", "캔버스 변경", "설정 다시 읽기", "종료",
+                "크로스헤어 프리셋", "현재 크로스헤어 저장", "닫기", "클릭하여 불러오기 / 우클릭하여 삭제", "새 크로스헤어"
+            },
+            // Türkçe
+            new string[]
+            {
+                "Nişangah ayarları", "Tuval (koordinat alanı)", "Hazır ayar", "G", "Y", "Mod", "Piksel hizalama", "Ölçekleme",
+                "En yakın", "Çift doğrusal", "Çapa", "Piksel saydamlığı (yeniden başlat; siyah kare olursa kapat)",
+                "Nişangah (tuval px)", "Şekil", "Renk", "Seç...", "Kol X", "Kol Y", "Boşluk X",
+                "Kalınlık X", "Kalınlık Y", "Boşluk Y", "Kenar çizgisi", "Sadece yanlar", "Opaklık", "Kollar eşit",
+                "Yumuşak kenar (dither)", "Parıltı", "Nişangah kayıtları (adla kaydet / yükle)", "Ad", "Kaydet", "Kitaplık...",
+                "Kayıtlı", "Yükle", "Sil", "Kaydet (Enter)", "Bu oyun için", "Kapat (Esc)", "Çıkış",
+                "F6 ayarlar / F7 tuval / F8 göster / Ctrl+Alt+Q çıkış", "Dil",
+                "Ayarlar", "Hazır ayar kitaplığı", "Göster / gizle", "Sonraki renk", "Sonraki tuval", "Ayarı yenile", "Çıkış",
+                "Nişangah kayıtları", "Mevcut nişangahı kaydet", "Kapat", "Yüklemek için tıkla / silmek için sağ tıkla", "Yeni nişangah"
+            },
+            // Polski
+            new string[]
+            {
+                "Ustawienia celownika", "Płótno (układ współrzędnych)", "Preset", "Szer.", "Wys.", "Tryb", "Wyrównanie pikseli", "Skalowanie",
+                "Najbliższy", "Dwuliniowe", "Kotwica", "Przezroczystość alfa (restart; odznacz przy czarnym kwadracie)",
+                "Celownik (px płótna)", "Kształt", "Kolor", "Wybierz...", "Ramię X", "Ramię Y", "Odstęp X",
+                "Grubość X", "Grubość Y", "Odstęp Y", "Obrys", "Tylko boki", "Krycie", "Równe ramiona",
+                "Miękka krawędź (dither)", "Poświata", "Presety celownika (zapisz / wczytaj)", "Nazwa", "Zapisz", "Biblioteka...",
+                "Zapisane", "Wczytaj", "Usuń", "Zapisz (Enter)", "Dla tej gry", "Zamknij (Esc)", "Zakończ",
+                "F6 ustawienia / F7 płótno / F8 pokaż / Ctrl+Alt+Q wyjście", "Język",
+                "Ustawienia", "Biblioteka presetów", "Pokaż / ukryj", "Następny kolor", "Następne płótno", "Wczytaj konfigurację", "Zakończ",
+                "Presety celownika", "Zapisz bieżący celownik", "Zamknij", "Kliknij, aby wczytać / prawy przycisk usuwa", "Nowy celownik"
+            },
+            // Deutsch
+            new string[]
+            {
+                "Fadenkreuz-Einstellungen", "Leinwand (Koordinaten)", "Preset", "B", "H", "Modus", "Pixel", "Skal.",
+                "Nächster", "Bilinear", "Anker", "Pixel-Alpha (Neustart; bei schwarzem Kasten abwählen)",
+                "Fadenkreuz (Leinwand-px)", "Form", "Farbe", "Wählen...", "Arm X", "Arm Y", "Gap X",
+                "Dicke X", "Dicke Y", "Gap Y", "Kontur", "Seiten", "Alpha", "Gleich",
+                "Weich (Dither)", "Glow", "Fadenkreuz-Presets (speichern / laden)", "Name", "Speichern", "Bibliothek...",
+                "Gespeichert", "Laden", "Löschen", "Speichern (Enter)", "Für Spiel speichern", "Schließen (Esc)", "Beenden",
+                "F6 Einstellungen / F7 Leinwand / F8 zeigen / Ctrl+Alt+Q beenden", "Sprache",
+                "Einstellungen", "Preset-Bibliothek", "Zeigen / verbergen", "Nächste Farbe", "Nächste Leinwand", "Konfiguration neu laden", "Beenden",
+                "Fadenkreuz-Presets", "Aktuelles Fadenkreuz speichern", "Schließen", "Klicken zum Laden / Rechtsklick zum Löschen", "Neues Fadenkreuz"
+            },
+            // Français
+            new string[]
+            {
+                "Réglages du réticule", "Canevas (repère)", "Préréglage", "L", "H", "Mode", "Alignement pixel", "Agrandissement",
+                "Voisin", "Bilinéaire", "Ancrage", "Alpha par pixel (redémarrage ; décocher si carré noir)",
+                "Réticule (px canevas)", "Forme", "Couleur", "Choisir...", "Bras X", "Bras Y", "Écart X",
+                "Épaisseur X", "Épaisseur Y", "Écart Y", "Contour", "Côtés seuls", "Opacité", "Bras égaux",
+                "Bord doux (dither)", "Halo", "Préréglages de réticule (enregistrer / charger)", "Nom", "Enregistrer", "Bibliothèque...",
+                "Enregistré", "Charger", "Supprimer", "Enregistrer (Entrée)", "Pour ce jeu", "Fermer (Échap)", "Quitter",
+                "F6 réglages / F7 canevas / F8 afficher / Ctrl+Alt+Q quitter", "Langue",
+                "Réglages", "Bibliothèque de préréglages", "Afficher / masquer", "Couleur suivante", "Canevas suivant", "Recharger la config", "Quitter",
+                "Préréglages de réticule", "Enregistrer le réticule actuel", "Fermer", "Clic pour charger / clic droit pour supprimer", "Nouveau réticule"
+            },
+            // Tiếng Việt
+            new string[]
+            {
+                "Cài đặt tâm ngắm", "Khung vẽ (hệ tọa độ)", "Mẫu", "Rộng", "Cao", "Chế độ", "Căn pixel", "Phóng to",
+                "Gần nhất", "Song tuyến", "Điểm neo", "Độ trong suốt theo điểm ảnh (khởi động lại; bỏ chọn nếu có ô đen)",
+                "Tâm ngắm (px khung vẽ)", "Hình dạng", "Màu", "Chọn...", "Cánh X", "Cánh Y", "Khe X",
+                "Độ dày X", "Độ dày Y", "Khe Y", "Viền", "Chỉ hai bên", "Độ mờ", "Cánh bằng nhau",
+                "Cạnh mềm (dither)", "Quầng sáng", "Mẫu tâm ngắm (lưu / tải theo tên)", "Tên", "Lưu", "Thư viện...",
+                "Đã lưu", "Tải", "Xóa", "Lưu (Enter)", "Cho game này", "Đóng (Esc)", "Thoát",
+                "F6 cài đặt / F7 khung vẽ / F8 ẩn hiện / Ctrl+Alt+Q thoát", "Ngôn ngữ",
+                "Cài đặt", "Thư viện mẫu", "Hiện / ẩn", "Màu tiếp theo", "Khung vẽ tiếp theo", "Tải lại cấu hình", "Thoát",
+                "Mẫu tâm ngắm", "Lưu tâm ngắm hiện tại", "Đóng", "Nhấn để tải / chuột phải để xóa", "Tâm ngắm mới"
+            }
+        };
+
+        public static int Current = 0;
+
+        public static bool TableOk()
+        {
+            for (int l = 0; l < Table.Length; l++)
+            {
+                if (Table[l].Length != Keys.Length) return false;
+                for (int k = 0; k < Keys.Length; k++)
+                    if (string.IsNullOrEmpty(Table[l][k])) return false;
+            }
+            return true;
+        }
+
+        public static string T(string key)
+        {
+            int i = Array.IndexOf(Keys, key);
+            if (i < 0) return key;
+            string[] row = Table[Current];
+            if (i < row.Length) return row[i];
+            return Table[1][i];
+        }
+
+        public static int KeyIndex(string zhText)
+        {
+            if (string.IsNullOrEmpty(zhText)) return -1;
+            return Array.IndexOf(Table[0], zhText);
+        }
+
+        public static int LangFromCode(string code)
+        {
+            if (string.IsNullOrEmpty(code)) return -1;
+            code = code.ToLowerInvariant();
+            if (code.StartsWith("zh")) return 0;
+            if (code.StartsWith("en")) return 1;
+            if (code.StartsWith("ru")) return 2;
+            if (code.StartsWith("pt")) return 3;
+            if (code.StartsWith("es")) return 4;
+            if (code.StartsWith("ja")) return 5;
+            if (code.StartsWith("ko")) return 6;
+            if (code.StartsWith("tr")) return 7;
+            if (code.StartsWith("pl")) return 8;
+            if (code.StartsWith("de")) return 9;
+            if (code.StartsWith("fr")) return 10;
+            if (code.StartsWith("vi")) return 11;
+            return -1;
+        }
+
+        public static string CodeFor(int lang)
+        {
+            string[] codes = { "zh", "en", "ru", "pt", "es", "ja", "ko", "tr", "pl", "de", "fr", "vi" };
+            if (lang < 0 || lang >= codes.Length) return "en";
+            return codes[lang];
+        }
+
+        public static int AutoDetect()
+        {
+            int i = LangFromCode(System.Globalization.CultureInfo.CurrentUICulture.Name);
+            return i < 0 ? 1 : i;
+        }
+    }
+
     sealed class SettingsForm : Form
     {
         readonly OverlayForm owner;
         EventHandler canvasHandler;
         bool loading;
 
-        ComboBox cbPreset, cbFit, cbShape, cbUpscale;
+        ComboBox cbPreset, cbFit, cbShape, cbUpscale, cbLang;
         NumericUpDown nW, nH, nAx, nAy, nSx, nSy, nTx, nTy, nGx, nGy, nOut, nAlpha, nGlow;
         CheckBox chkSnap, chkAlphaMode, chkSync, chkOutlineSides, chkSoftEdge;
         Button btnColor, btnApply, btnClose, btnExit, btnProfile, btnSavePreset, btnLoadPreset, btnDeletePreset, btnGallery;
@@ -1400,16 +1663,21 @@ namespace CrosshairOverlay
             Text = "准星设置 - Crosshair Overlay";
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
-            MinimizeBox = false;
+            MinimizeBox = true;
+            ShowInTaskbar = true;
             StartPosition = FormStartPosition.Manual;
             TopMost = true;
-            ClientSize = new Size(470, 560);
+            ClientSize = new Size(700, 596);
             Rectangle scr = Screen.PrimaryScreen.WorkingArea;
             Location = new Point(scr.X + 40, scr.Y + (scr.Height - Height) / 2);
 
             BuildUi();
             LoadFromConfig();
             RefreshPresetList();
+            LocalizeTree(this);
+            Text = Loc.T("title");
+            cbLang.SelectedIndex = Loc.Current;
+
             canvasHandler = delegate { LoadCanvasFields(); };
             owner.CanvasChanged += canvasHandler;
             FormClosed += delegate { owner.CanvasChanged -= canvasHandler; };
@@ -1431,54 +1699,53 @@ namespace CrosshairOverlay
         {
             GroupBox g1 = new GroupBox();
             g1.Text = "画布（准星的坐标系）";
-            g1.SetBounds(10, 8, 450, 170);
+            g1.SetBounds(10, 8, 680, 152);
             Controls.Add(g1);
 
-            Lab(g1, 12, 28, "预设");
-            cbPreset = Combo(g1, 60, 24, 150);
-            Lab(g1, 220, 28, "宽");
-            nW = Num(g1, 250, 24, 60, 8, 16384, 0, 1);
-            Lab(g1, 316, 28, "高");
-            nH = Num(g1, 346, 24, 60, 8, 16384, 0, 1);
+            Lab(g1, 10, 28, "预设");
+            cbPreset = Combo(g1, 120, 24, 150);
+            Lab(g1, 290, 28, "宽");
+            nW = Num(g1, 400, 24, 60, 8, 16384, 0, 1);
+            Lab(g1, 480, 28, "高");
+            nH = Num(g1, 590, 24, 60, 8, 16384, 0, 1);
 
-            Lab(g1, 12, 60, "模式");
-            cbFit = Combo(g1, 60, 56, 110);
+            Lab(g1, 10, 60, "模式");
+            cbFit = Combo(g1, 120, 56, 110);
             cbFit.Items.AddRange(new object[] { "stretch", "fit", "native" });
-            Lab(g1, 190, 60, "像素对齐");
+            Lab(g1, 250, 60, "像素对齐");
             chkSnap = new CheckBox();
-            chkSnap.SetBounds(260, 58, 60, 22);
+            chkSnap.SetBounds(360, 58, 60, 22);
             chkSnap.CheckedChanged += OnUiChanged;
             g1.Controls.Add(chkSnap);
-
-            Lab(g1, 330, 60, "放大");
-            cbUpscale = Combo(g1, 370, 56, 70);
+            Lab(g1, 450, 60, "放大");
+            cbUpscale = Combo(g1, 560, 56, 90);
             cbUpscale.Items.AddRange(new object[] { "最近邻", "双线性" });
 
-            Lab(g1, 12, 92, "锚点");
-            nAx = Num(g1, 50, 88, 55, 0, 100, 1, 1);
-            Lab(g1, 115, 92, "X%");
-            nAy = Num(g1, 145, 88, 55, 0, 100, 1, 1);
-            Lab(g1, 208, 92, "Y%");
+            Lab(g1, 10, 92, "锚点");
+            nAx = Num(g1, 120, 88, 55, 0, 100, 1, 1);
+            Lab(g1, 190, 92, "X%");
+            nAy = Num(g1, 240, 88, 55, 0, 100, 1, 1);
+            Lab(g1, 310, 92, "Y%");
 
             chkAlphaMode = new CheckBox();
             chkAlphaMode.Text = "逐像素透明（重启生效；出现黑块就取消勾选）";
-            chkAlphaMode.SetBounds(12, 124, 400, 22);
+            chkAlphaMode.SetBounds(10, 120, 660, 22);
             chkAlphaMode.CheckedChanged += OnUiChanged;
             g1.Controls.Add(chkAlphaMode);
 
             GroupBox g2 = new GroupBox();
             g2.Text = "准星（单位：画布像素）";
-            g2.SetBounds(10, 185, 450, 190);
+            g2.SetBounds(10, 168, 680, 192);
             Controls.Add(g2);
 
-            Lab(g2, 12, 28, "形状");
-            cbShape = Combo(g2, 60, 24, 110);
+            Lab(g2, 10, 28, "形状");
+            cbShape = Combo(g2, 120, 24, 110);
             cbShape.Items.AddRange(new object[] { "cross", "dot", "circle", "x", "t" });
 
-            Lab(g2, 190, 28, "颜色");
+            Lab(g2, 250, 28, "颜色");
             btnColor = new Button();
             btnColor.Text = "选择...";
-            btnColor.SetBounds(238, 23, 66, 26);
+            btnColor.SetBounds(360, 23, 80, 26);
             btnColor.Click += delegate
             {
                 using (ColorDialog dlg = new ColorDialog())
@@ -1494,79 +1761,79 @@ namespace CrosshairOverlay
             };
             g2.Controls.Add(btnColor);
             pColor = new Panel();
-            pColor.SetBounds(310, 24, 24, 24);
+            pColor.SetBounds(450, 24, 24, 24);
             pColor.BorderStyle = BorderStyle.FixedSingle;
             g2.Controls.Add(pColor);
             txtHex = new TextBox();
-            txtHex.SetBounds(340, 25, 78, 22);
+            txtHex.SetBounds(480, 25, 90, 22);
             txtHex.TextChanged += OnUiChanged;
             g2.Controls.Add(txtHex);
 
-            Lab(g2, 12, 62, "横臂");
-            nSx = Num(g2, 60, 58, 60, 0.5, 200, 1, 0.5m);
-            Lab(g2, 130, 62, "竖臂");
-            nSy = Num(g2, 178, 58, 60, 0.5, 200, 1, 0.5m);
-            Lab(g2, 248, 62, "间隙X");
-            nGx = Num(g2, 300, 58, 60, 0, 200, 1, 0.5m);
+            Lab(g2, 10, 62, "横臂");
+            nSx = Num(g2, 120, 58, 56, 0.5, 200, 1, 0.5m);
+            Lab(g2, 200, 62, "竖臂");
+            nSy = Num(g2, 310, 58, 56, 0.5, 200, 1, 0.5m);
+            Lab(g2, 390, 62, "间隙X");
+            nGx = Num(g2, 500, 58, 56, 0, 200, 1, 0.5m);
 
-            Lab(g2, 12, 94, "线宽X");
-            nTx = Num(g2, 60, 90, 60, 0.5, 100, 1, 0.5m);
-            Lab(g2, 130, 94, "线宽Y");
-            nTy = Num(g2, 178, 90, 60, 0.5, 100, 1, 0.5m);
-            Lab(g2, 248, 94, "间隙Y");
-            nGy = Num(g2, 300, 90, 60, 0, 200, 1, 0.5m);
+            Lab(g2, 10, 94, "线宽X");
+            nTx = Num(g2, 120, 90, 56, 0.5, 100, 1, 0.5m);
+            Lab(g2, 200, 94, "线宽Y");
+            nTy = Num(g2, 310, 90, 56, 0.5, 100, 1, 0.5m);
+            Lab(g2, 390, 94, "间隙Y");
+            nGy = Num(g2, 500, 90, 56, 0, 200, 1, 0.5m);
 
-            Lab(g2, 12, 126, "描边");
-            nOut = Num(g2, 60, 122, 60, 0, 20, 0, 1);
+            Lab(g2, 10, 126, "描边");
+            nOut = Num(g2, 120, 122, 56, 0, 20, 0, 1);
             chkOutlineSides = new CheckBox();
             chkOutlineSides.Text = "只描两侧";
-            chkOutlineSides.SetBounds(126, 120, 90, 22);
+            chkOutlineSides.SetBounds(200, 120, 110, 22);
             chkOutlineSides.CheckedChanged += OnUiChanged;
             g2.Controls.Add(chkOutlineSides);
-            Lab(g2, 222, 126, "不透明度");
-            nAlpha = Num(g2, 292, 122, 60, 0, 255, 0, 5);
+            Lab(g2, 330, 126, "不透明度");
+            nAlpha = Num(g2, 460, 122, 56, 0, 255, 0, 5);
 
             chkSync = new CheckBox();
             chkSync.Text = "横竖等长";
-            chkSync.SetBounds(12, 154, 90, 22);
+            chkSync.SetBounds(10, 154, 120, 22);
             chkSync.CheckedChanged += OnUiChanged;
             g2.Controls.Add(chkSync);
 
             chkSoftEdge = new CheckBox();
             chkSoftEdge.Text = "柔和边缘（抖动模拟半透明）";
-            chkSoftEdge.SetBounds(110, 154, 240, 22);
+            chkSoftEdge.SetBounds(140, 154, 240, 22);
             chkSoftEdge.CheckedChanged += OnUiChanged;
             g2.Controls.Add(chkSoftEdge);
 
-            Lab(g2, 356, 154, "光晕");
-            nGlow = Num(g2, 392, 152, 50, 0, 100, 0, 5);
+            Lab(g2, 390, 154, "光晕");
+            nGlow = Num(g2, 470, 152, 56, 0, 100, 0, 5);
             nGlow.ValueChanged += OnUiChanged;
 
             GroupBox g3 = new GroupBox();
             g3.Text = "准星存档（自定义名字保存/载入）";
-            g3.SetBounds(10, 382, 450, 96);
+            g3.SetBounds(10, 368, 680, 96);
             Controls.Add(g3);
 
-            Lab(g3, 12, 22, "名称");
+            Lab(g3, 10, 22, "名称");
             txtName = new TextBox();
-            txtName.SetBounds(56, 19, 150, 22);
+            txtName.SetBounds(120, 19, 180, 22);
             g3.Controls.Add(txtName);
 
             btnSavePreset = new Button();
             btnSavePreset.Text = "保存";
-            btnSavePreset.SetBounds(214, 18, 70, 26);
+            btnSavePreset.SetBounds(310, 18, 80, 26);
             btnSavePreset.Click += delegate { SavePreset(); };
             g3.Controls.Add(btnSavePreset);
 
             btnGallery = new Button();
             btnGallery.Text = "存档库...";
-            btnGallery.SetBounds(292, 18, 120, 26);
+            btnGallery.SetBounds(400, 18, 120, 26);
             btnGallery.Click += delegate { owner.ShowGallery(); };
             g3.Controls.Add(btnGallery);
 
-            Lab(g3, 12, 58, "已存");
+            Lab(g3, 10, 58, "已存");
             cbPresetList = new ComboBox();
-            cbPresetList.SetBounds(56, 55, 200, 22);
+            cbPresetList.SetBounds(120, 55, 240, 22);
             cbPresetList.DropDownStyle = ComboBoxStyle.DropDownList;
             cbPresetList.SelectedIndexChanged += delegate
             {
@@ -1576,51 +1843,69 @@ namespace CrosshairOverlay
 
             btnLoadPreset = new Button();
             btnLoadPreset.Text = "载入";
-            btnLoadPreset.SetBounds(264, 54, 70, 26);
+            btnLoadPreset.SetBounds(370, 54, 80, 26);
             btnLoadPreset.Click += delegate { LoadPreset(); };
             g3.Controls.Add(btnLoadPreset);
 
             btnDeletePreset = new Button();
             btnDeletePreset.Text = "删除";
-            btnDeletePreset.SetBounds(340, 54, 70, 26);
+            btnDeletePreset.SetBounds(460, 54, 80, 26);
             btnDeletePreset.Click += delegate { DeletePreset(); };
             g3.Controls.Add(btnDeletePreset);
 
+            cbLang = new ComboBox();
+            cbLang.SetBounds(10, 474, 200, 24);
+            cbLang.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbLang.Items.AddRange(Loc.Names);
+            cbLang.SelectedIndexChanged += delegate
+            {
+                if (loading) return;
+                if (cbLang.SelectedIndex < 0) return;
+                Loc.Current = cbLang.SelectedIndex;
+                owner.Cfg.Language = Loc.CodeFor(Loc.Current);
+                Relocalize();
+                owner.RestyleTray();
+            };
+            Controls.Add(cbLang);
+
+            lblStatus = new Label();
+            lblStatus.SetBounds(220, 477, 470, 20);
+            lblStatus.Text = Loc.T("status");
+            lblStatus.AutoEllipsis = true;
+            Controls.Add(lblStatus);
+
             btnApply = new Button();
             btnApply.Text = "保存配置 (Enter)";
-            btnApply.SetBounds(10, 490, 130, 34);
+            btnApply.SetBounds(10, 508, 330, 34);
+            btnApply.AutoEllipsis = true;
             btnApply.Click += delegate { ApplyAndSave(); };
             Controls.Add(btnApply);
 
             btnProfile = new Button();
             btnProfile.Text = "存为当前游戏";
-            btnProfile.SetBounds(145, 490, 120, 34);
+            btnProfile.SetBounds(350, 508, 330, 34);
+            btnProfile.AutoEllipsis = true;
             btnProfile.Click += delegate
             {
                 PushToConfig();
                 string proc = owner.SaveProfileForCurrentGame();
                 lblStatus.Text = proc.Length > 0
-                    ? ("已保存为 " + proc + ".exe 的配置，切回该游戏会自动套用")
-                    : "没检测到前台游戏：先切到游戏窗口，再回来点这个按钮";
+                    ? ("OK: " + proc + ".exe")
+                    : "no foreground game detected";
             };
             Controls.Add(btnProfile);
 
             btnClose = new Button();
             btnClose.Text = "关闭 (Esc)";
-            btnClose.SetBounds(270, 490, 90, 34);
+            btnClose.SetBounds(10, 550, 160, 34);
             btnClose.Click += delegate { Hide(); };
             Controls.Add(btnClose);
 
             btnExit = new Button();
             btnExit.Text = "退出程序";
-            btnExit.SetBounds(365, 490, 95, 34);
+            btnExit.SetBounds(180, 550, 160, 34);
             btnExit.Click += delegate { owner.QuitApp(); };
             Controls.Add(btnExit);
-
-            lblStatus = new Label();
-            lblStatus.SetBounds(10, 530, 450, 20);
-            lblStatus.Text = "F6 打开本窗口 / F7 切画布 / F8 开关准星 / Ctrl+Alt+Q 退出";
-            Controls.Add(lblStatus);
 
             AcceptButton = btnApply;
             KeyPreview = true;
@@ -1629,6 +1914,7 @@ namespace CrosshairOverlay
                 if (e.KeyCode == Keys.Escape) { Hide(); e.Handled = true; }
             };
         }
+
 
         Label Lab(Control p, int x, int y, string t)
         {
@@ -1678,7 +1964,7 @@ namespace CrosshairOverlay
             Config c = owner.Cfg;
 
             cbPreset.Items.Clear();
-            cbPreset.Items.Add("自定义");
+            cbPreset.Items.Add(Loc.Current == 0 ? "自定义" : "Custom");
             foreach (Point p in c.CanvasPresets)
                 cbPreset.Items.Add(p.X == 0 ? "native" : p.X + "x" + p.Y);
             cbPreset.SelectedIndex = 0;
@@ -1862,6 +2148,37 @@ namespace CrosshairOverlay
             lblStatus.Text = "已删除：" + name;
         }
 
+        public void Relocalize()
+        {
+            loading = true;
+            Text = Loc.T("title");
+            LocalizeTree(this);
+            int up = cbUpscale.SelectedIndex;
+            cbUpscale.Items.Clear();
+            cbUpscale.Items.Add(Loc.T("nearest"));
+            cbUpscale.Items.Add(Loc.T("bilinear"));
+            cbUpscale.SelectedIndex = up < 0 ? 0 : up;
+            lblStatus.Text = Loc.T("status");
+            cbLang.SelectedIndex = Loc.Current;
+            loading = false;
+        }
+
+        void LocalizeTree(Control root)
+        {
+            foreach (Control c in root.Controls)
+            {
+                int idx = -1;
+                if (c.Tag is int) idx = (int)c.Tag;
+                else
+                {
+                    idx = Loc.KeyIndex(c.Text);
+                    if (idx >= 0) c.Tag = idx;
+                }
+                if (idx >= 0) c.Text = Loc.T(Loc.Keys[idx]);
+                LocalizeTree(c);
+            }
+        }
+
         void ApplyAndSave()
         {
             PushToConfig();
@@ -1891,7 +2208,8 @@ namespace CrosshairOverlay
             Text = "准星存档库 - Crosshair Overlay";
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
-            MinimizeBox = false;
+            MinimizeBox = true;
+            ShowInTaskbar = true;
             StartPosition = FormStartPosition.CenterScreen;
             TopMost = true;
             ClientSize = new Size(620, 500);
@@ -2136,6 +2454,9 @@ namespace CrosshairOverlay
                 Check("render: antialiased circle edge", partial > 0);
             }
 
+            Check("i18n: all language tables complete", Loc.TableOk());
+            Check("i18n: lookup works for every language", Loc.T("title").Length > 0);
+
             Console.WriteLine();
             Console.WriteLine(fails == 0 ? "ALL TESTS PASSED" : (fails + " TEST(S) FAILED"));
             return fails == 0 ? 0 : 1;
@@ -2145,7 +2466,7 @@ namespace CrosshairOverlay
 
     static class Program
     {
-        public const string AppVersion = "1.0.0";
+        public const string AppVersion = "1.1.1";
         static System.Threading.Mutex singleInstance;
 
         [STAThread]
@@ -2159,6 +2480,8 @@ namespace CrosshairOverlay
                 if (args[i] == "--config" && i + 1 < args.Length) { cfgPath = args[i + 1]; i++; }
             }
             Config cfg = Config.Load(cfgPath);
+            int langIdx = Loc.LangFromCode(cfg.Language);
+            Loc.Current = langIdx >= 0 ? langIdx : Loc.AutoDetect();
 
             if (args.Length > 0 && (args[0] == "--version" || args[0] == "-v"))
             {
@@ -2202,6 +2525,24 @@ namespace CrosshairOverlay
                 };
                 t.Start();
                 Application.Run(f);
+                return;
+            }
+
+            if (args.Length > 1 && args[0] == "--ui-shot")
+            {
+                OverlayForm f = new OverlayForm(cfg);
+                f.Show();
+                SettingsForm sf = new SettingsForm(f);
+                sf.Show();
+                Application.DoEvents();
+                using (Bitmap b = new Bitmap(sf.Width, sf.Height))
+                {
+                    sf.DrawToBitmap(b, new Rectangle(0, 0, b.Width, b.Height));
+                    b.Save(args[1], System.Drawing.Imaging.ImageFormat.Png);
+                }
+                sf.Close();
+                f.QuitApp();
+                Console.WriteLine("ui shot " + args[1]);
                 return;
             }
 

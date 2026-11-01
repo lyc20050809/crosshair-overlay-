@@ -1,11 +1,36 @@
 # Crosshair Overlay
 
+[![build](https://github.com/lyc20050809/crosshair-overlay-/actions/workflows/build.yml/badge.svg)](https://github.com/lyc20050809/crosshair-overlay-/actions/workflows/build.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey.svg)]()
+[![dependencies](https://img.shields.io/badge/dependencies-none-brightgreen.svg)]()
+
 A tiny, dependency-free crosshair overlay for Windows. It draws a crosshair on top of
 any game or desktop app using a **resolution-independent canvas**: you design the
 crosshair in the coordinate space of a chosen resolution (800×600, 1080p, native, …)
 and the tool maps it to whatever your monitor actually shows.
 
 No installer, no registry, no background service — one `.exe`, a few `.ini` files, done.
+
+## Install
+
+1. Download `CrosshairOverlay-1.0.0-win64.zip` from the [latest release](../../releases/latest).
+2. Extract anywhere (e.g. `C:\Tools\CrosshairOverlay`).
+3. Run `CrosshairOverlay.exe`. A crosshair appears; the tray icon holds the menu.
+4. Press `F6` to configure, `F8` to show/hide, `Ctrl+Alt+Q` to quit.
+
+Nothing is written outside the folder. Delete it to uninstall.
+
+## Screenshots
+
+> _Placeholder — add 2–3 images here (crosshair in game, `F6` settings window, preset library)._
+>
+> Suggested layout:
+>
+> | Crosshair | Settings (`F6`) | Preset library |
+> |---|---|---|
+> | `docs/img/crosshair.png` | `docs/img/settings.png` | `docs/img/presets.png` |
+
 
 ```
 ┌──────────────────────────────────────────┐
